@@ -1,6 +1,8 @@
 import random
 import math
-from flask import Flask, render_template
+from flask import Flask,render_template, request
+import requests
+
 
 millnames = ['',' Thousand',' Million',' Billion',' Trillion']
 suc_rate= [(0,1,0.95,0.05,0.0),(1,2,0.90,0.10,0.0),(2,3,0.85,0.15,0.0),
@@ -176,8 +178,9 @@ def enhancement(item_level, initial_star, final_star, discount,guard,star_catche
         if result_star == final_star:
             return (result_star, total_trials,total_cost)
 
-def generator(level, initial_star, final_star, discount, guard,star_catcher, item_num):
+def generator(level, initial_star, final_star, discount, guard, star_catcher, item_num):
     total_cost = list()
+    msg = list()
     item_destoried = 0
     for i in range(0,item_num):
         item_info = enhancement(level,initial_star,final_star,discount,guard,star_catcher)
@@ -187,14 +190,34 @@ def generator(level, initial_star, final_star, discount, guard,star_catcher, ite
     avg_cost = sum(total_cost) / item_num
     lowest_cost = min(total_cost)
     highest_cost = max(total_cost)
-    print("===================================================================")
-    print("Avg cost of %s level %d enhancement is %s mesos" % (level, final_star, millify(avg_cost)))
-    print("Lowest cost : %s ||| Highest cost: %s " % (millify(lowest_cost), millify(highest_cost)))
-    print("Destoried items : ", item_destoried)
-    print("Overall successful rate is : ", (item_num - item_destoried) / item_num)
+    msg.append("Avg cost of %s level %d enhancement is %s mesos " % (level, final_star, millify(avg_cost)))
+    msg.append("Lowest cost : %s ||| Highest cost: %s " % (millify(lowest_cost), millify(highest_cost)))
+    msg.append("Destoried items : %s " % (item_destoried))
+    msg.append("Overall successful rate is : %s " % ((item_num - item_destoried) / item_num))
+    return msg
 
-def main():
-   generator(160,0,17,0.95,True,True,10000)
-   generator(160,0,17,0.95,False,False,10000)
-main()
+def convertBool(val1):
+    if val1 == 'true':
+        return True
+    elif val1 =='false':
+        return False
 
+app = Flask(__name__)
+
+@app.route('/')
+def main_page():
+    return render_template('main_page.html')
+
+@app.route('/', methods = ['POST'])
+def getValue():
+    level = int(request.form['level'])
+    ini_star = int(request.form['initial_star'])
+    final_star = int(request.form['final_star'])
+    star_catcher = convertBool(request.form['star_catcher'])
+    guard = convertBool(request.form['guard'])
+    discount = float(request.form['mvp_discount'])
+    msg = generator(level,ini_star,final_star,discount,guard,star_catcher,10000)
+    return render_template('main_page.html', msg = msg)
+
+if __name__ == '__main__':
+    app.run(debug = True)
